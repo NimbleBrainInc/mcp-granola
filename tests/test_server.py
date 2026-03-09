@@ -1,0 +1,173 @@
+"""Integration tests for MCP server tools via FastMCP Client."""
+
+import pytest
+from fastmcp import Client
+
+
+class TestSearchMeetingsTool:
+    @pytest.mark.asyncio
+    async def test_basic_search(self, mcp_server):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("search_meetings", {"query": "API"})
+        assert result is not None
+
+    @pytest.mark.asyncio
+    async def test_search_with_filters(self, mcp_server):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "search_meetings",
+                {
+                    "query": "planning",
+                    "date_from": "2025-01-01",
+                    "date_to": "2025-01-31",
+                    "limit": 5,
+                },
+            )
+        assert result is not None
+
+    @pytest.mark.asyncio
+    async def test_search_with_attendee(self, mcp_server):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "search_meetings",
+                {"query": "meeting", "attendee": "alice"},
+            )
+        assert result is not None
+
+    @pytest.mark.asyncio
+    async def test_search_no_results(self, mcp_server):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("search_meetings", {"query": "xyznonexistent"})
+        assert result is not None
+
+
+class TestGetMeetingTool:
+    @pytest.mark.asyncio
+    async def test_existing_meeting(self, mcp_server):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("get_meeting", {"meeting_id": "doc-001"})
+        assert result is not None
+
+    @pytest.mark.asyncio
+    async def test_meeting_with_transcript(self, mcp_server):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_meeting",
+                {"meeting_id": "doc-001", "include_transcript": True},
+            )
+        assert result is not None
+
+    @pytest.mark.asyncio
+    async def test_nonexistent_meeting(self, mcp_server):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("get_meeting", {"meeting_id": "nonexistent"})
+        # Should return error string, not crash
+        assert result is not None
+
+
+class TestListMeetingsTool:
+    @pytest.mark.asyncio
+    async def test_list_all(self, mcp_server):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("list_meetings", {})
+        assert result is not None
+
+    @pytest.mark.asyncio
+    async def test_list_with_pagination(self, mcp_server):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("list_meetings", {"limit": 2, "offset": 0})
+        assert result is not None
+
+    @pytest.mark.asyncio
+    async def test_list_with_sort(self, mcp_server):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("list_meetings", {"sort": "title"})
+        assert result is not None
+
+    @pytest.mark.asyncio
+    async def test_list_with_date_filter(self, mcp_server):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("list_meetings", {"date_from": "2025-02-01"})
+        assert result is not None
+
+
+class TestSearchByPersonTool:
+    @pytest.mark.asyncio
+    async def test_search_by_name(self, mcp_server):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("search_by_person", {"person": "Alice"})
+        assert result is not None
+
+    @pytest.mark.asyncio
+    async def test_search_by_email(self, mcp_server):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("search_by_person", {"person": "carol@example.com"})
+        assert result is not None
+
+    @pytest.mark.asyncio
+    async def test_no_matches(self, mcp_server):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("search_by_person", {"person": "nobody"})
+        assert result is not None
+
+
+class TestGetTranscriptTool:
+    @pytest.mark.asyncio
+    async def test_with_transcript(self, mcp_server):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("get_transcript", {"meeting_id": "doc-001"})
+        assert result is not None
+
+    @pytest.mark.asyncio
+    async def test_without_transcript(self, mcp_server):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("get_transcript", {"meeting_id": "doc-002"})
+        # Returns error string for no transcript
+        assert result is not None
+
+    @pytest.mark.asyncio
+    async def test_nonexistent_meeting(self, mcp_server):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("get_transcript", {"meeting_id": "nonexistent"})
+        assert result is not None
+
+    @pytest.mark.asyncio
+    async def test_timestamped_format(self, mcp_server):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_transcript",
+                {"meeting_id": "doc-001", "format": "timestamped"},
+            )
+        assert result is not None
+
+
+class TestGetMeetingStatsTool:
+    @pytest.mark.asyncio
+    async def test_stats(self, mcp_server):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("get_meeting_stats", {})
+        assert result is not None
+
+
+class TestToolListing:
+    @pytest.mark.asyncio
+    async def test_all_tools_registered(self, mcp_server):
+        async with Client(mcp_server) as client:
+            tools = await client.list_tools()
+        tool_names = {t.name for t in tools}
+        expected = {
+            "search_meetings",
+            "get_meeting",
+            "list_meetings",
+            "search_by_person",
+            "get_transcript",
+            "get_meeting_stats",
+        }
+        assert expected.issubset(tool_names)
+
+    @pytest.mark.asyncio
+    async def test_tools_have_descriptions(self, mcp_server):
+        async with Client(mcp_server) as client:
+            tools = await client.list_tools()
+        for tool in tools:
+            assert tool.description, f"Tool {tool.name} has no description"
