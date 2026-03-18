@@ -1,7 +1,7 @@
 {
   "manifest_version": "0.3",
   "name": "@nimblebraininc/granola",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Search and extract information from Granola meeting notes",
   "author": {
     "name": "NimbleBrain Inc"
@@ -11,7 +11,10 @@
     "entry_point": "mcp_granola.server",
     "mcp_config": {
       "command": "python",
-      "args": ["-m", "mcp_granola.server"]
+      "args": [
+        "-m",
+        "mcp_granola.server"
+      ]
     }
   }
 }
