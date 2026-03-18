@@ -78,17 +78,21 @@ class GranolaData:
         if self._search_cache is not None:
             return self._search_cache
 
-        self._search_cache = {}
-        for doc_id, doc in self.documents.items():
+        # Snapshot documents first — accessing self.documents triggers _load(),
+        # which can set self._search_cache = None mid-build if the file changed.
+        docs = self.documents
+        cache: dict[str, dict[str, Any]] = {}
+        for doc_id, doc in docs.items():
             searchable = self._get_searchable_text(doc)
             title = doc.get("title") or ""
             created_at = doc.get("created_at") or ""
-            self._search_cache[doc_id] = {
+            cache[doc_id] = {
                 "text": searchable.lower(),
                 "title": title,
                 "date": created_at[:10] if created_at else "",
                 "attendees": self._get_attendees(doc),
             }
+        self._search_cache = cache
         return self._search_cache
 
     def _get_searchable_text(self, doc: dict[str, Any]) -> str:

@@ -400,6 +400,38 @@ class TestGetStats:
         assert stats["total_transcripts"] == 2
 
 
+class TestSearchCacheReentrancy:
+    """Regression test: _build_search_cache must not break if _load() invalidates
+    the cache mid-build (e.g. when the Granola cache file changes on disk)."""
+
+    def test_search_cache_survives_mid_build_reload(self, granola_data: GranolaData):
+        """Simulate file change during _build_search_cache iteration.
+
+        Before the fix, accessing self.documents inside the loop triggered
+        _load(), which set self._search_cache = None while _build_search_cache
+        was writing to it — causing 'NoneType' object does not support item assignment.
+        """
+        original_load = granola_data._load
+
+        call_count = 0
+
+        def load_that_invalidates_cache() -> dict:
+            nonlocal call_count
+            call_count += 1
+            # On the second call (triggered by self.documents inside the loop),
+            # simulate what _load does when the file has changed: invalidate the cache.
+            if call_count == 2:
+                granola_data._search_cache = None
+            return original_load()
+
+        granola_data._search_cache = None  # Force rebuild
+        granola_data._load = load_that_invalidates_cache
+
+        # Before the fix this raised: TypeError: 'NoneType' object does not support item assignment
+        results = granola_data.search_by_person("Alice")
+        assert len(results) >= 1
+
+
 class TestCacheAutoDetection:
     def test_find_cache_path_prefers_highest_version(self, tmp_path: Path):
         """Auto-detection returns the highest version cache file."""

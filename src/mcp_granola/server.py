@@ -1,5 +1,7 @@
 """Granola MCP Server - Search and extract from meeting notes."""
 
+from importlib.resources import files
+
 from fastmcp import Context, FastMCP
 from starlette.requests import Request
 from starlette.responses import JSONResponse
@@ -19,7 +21,21 @@ from .models import (
 )
 
 # Create MCP server
-mcp = FastMCP("Granola")
+mcp = FastMCP(
+    "Granola",
+    instructions=(
+        "Before using tools, read the skill://granola/usage resource "
+        "for tool selection guidance and parameter reference."
+    ),
+)
+
+SKILL_CONTENT = files("mcp_granola").joinpath("SKILL.md").read_text()
+
+
+@mcp.resource("skill://granola/usage")
+def granola_skill() -> str:
+    """How to effectively use this server's tools."""
+    return SKILL_CONTENT
 
 
 # Health endpoint for HTTP transport
