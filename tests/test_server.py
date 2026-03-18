@@ -190,6 +190,32 @@ class TestV6StatsTool:
         assert result is not None
 
 
+class TestSkillResource:
+    @pytest.mark.asyncio
+    async def test_skill_resource_listed(self, mcp_server):
+        """The skill://granola/usage resource is discoverable."""
+        async with Client(mcp_server) as client:
+            resources = await client.list_resources()
+        uris = {str(r.uri) for r in resources}
+        assert "skill://granola/usage" in uris
+
+    @pytest.mark.asyncio
+    async def test_skill_resource_readable(self, mcp_server):
+        """The skill resource returns non-empty markdown content."""
+        async with Client(mcp_server) as client:
+            result = await client.read_resource("skill://granola/usage")
+        content = result[0].text if hasattr(result[0], "text") else str(result[0])
+        assert "## Tools" in content
+        assert "meeting_id" in content
+
+    @pytest.mark.asyncio
+    async def test_server_instructions_reference_skill(self, mcp_server):
+        """Server instructions point LLMs to the skill resource."""
+        async with Client(mcp_server) as client:
+            init = await client.initialize()
+        assert "skill://granola/usage" in init.instructions
+
+
 class TestToolListing:
     @pytest.mark.asyncio
     async def test_all_tools_registered(self, mcp_server):

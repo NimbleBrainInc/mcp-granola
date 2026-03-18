@@ -39,7 +39,11 @@ All tools that accept meeting identifiers use `meeting_id` (not `doc_id`, `id`, 
 2. Filter by date range or attendee if needed
 3. `get_meeting` on items of interest
 
-### 4. Get Transcript for Deep Review
+### 4. Check Data Availability
+1. `get_meeting_stats` to see how many meetings are stored, date range, and transcript coverage
+2. Use the stats to set expectations — e.g., if `documents_with_transcripts` is low, transcript-based workflows will have limited results
+
+### 5. Get Transcript for Deep Review
 1. Find the meeting via search or list
 2. Check `has_transcript` — most meetings have privacy mode enabled and won't have transcripts
 3. `get_transcript` with `meeting_id` and `format="timestamped"` for timing info
