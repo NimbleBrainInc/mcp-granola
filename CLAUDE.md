@@ -13,26 +13,40 @@ src/mcp_granola/
 
 ## Data Source
 
-Reads from: `~/Library/Application Support/Granola/cache-v3.json`
+Auto-detects the newest Granola cache file from `~/Library/Application Support/Granola/`:
+- Tries `cache-v6.json`, `cache-v5.json`, `cache-v4.json`, `cache-v3.json` in order
+- Uses the first file that exists
 
 Data is cached in memory and auto-refreshes when file changes.
 
 ### Structure
 
 ```
-cache-v3.json
-└── cache (JSON string) → parse to:
+cache-vN.json
+└── cache (v3: JSON string, v4+: dict) → normalize to:
     └── state
         ├── documents      # dict: {id: Document}
         ├── transcripts    # dict: {doc_id: Segment[]}
-        └── documentPanels # dict: {doc_id: {panel_id: Panel}}
+        └── documentPanels # dict: {doc_id: {panel_id: Panel}} — v3 only, removed in v6
 ```
+
+### Version Differences
+
+| Feature | v3 | v6 |
+|---------|----|----|
+| `cache` field | JSON string | dict |
+| `documentPanels` | Present | Removed |
+| `notes` (ProseMirror) | Not present | Present on most docs |
+| `notes_plain` | Populated | Partially populated (~77%) |
+| `summary`/`overview` | Populated | Empty (moved server-side) |
+| People `details` | Not present | Enriched (employment, company, avatar) |
 
 ### Gotchas
 
 - **Nullable fields**: Use `doc.get("field") or ""` not `doc.get("field", "")` (values can be explicit `null`)
-- **ProseMirror notes**: Nested structure, use recursive text extraction
+- **ProseMirror notes**: When `notes_plain` is empty, text is auto-extracted from ProseMirror `notes` field
 - **Sparse transcripts**: Most meetings have privacy mode enabled (only 8 of 478 have transcripts)
+- **Panels**: `panels_available` field in `MeetingDetails` indicates whether the cache version includes panel data
 
 ## Commands
 

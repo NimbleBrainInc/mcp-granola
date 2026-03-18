@@ -1,6 +1,6 @@
 # MCPB bundle configuration
 BUNDLE_NAME = mcp-granola
-VERSION ?= 0.1.0
+VERSION ?= 0.2.0
 
 .PHONY: help install dev-install format format-check lint lint-fix typecheck test test-cov clean run check all
 
@@ -51,6 +51,9 @@ clean: ## Clean up build artifacts and cache
 
 run: ## Run the MCP server in stdio mode
 	uv run python -m mcp_granola.server
+
+bundle: ## Build MCPB bundle locally
+	@./scripts/build-bundle.sh . $(VERSION)
 
 check: format-check lint typecheck test ## Run all checks
 

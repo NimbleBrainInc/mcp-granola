@@ -2,7 +2,7 @@
   "$schema": "https://schemas.nimblebrain.ai/v1/nimblebrain-server.schema.json",
   "name": "ai.nimblebrain/granola",
   "description": "Search and extract information from local Granola meeting notes",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "title": "Granola MCP Server",
   "repository": {
     "url": "https://github.com/NimbleBrainInc/mcp-granola",

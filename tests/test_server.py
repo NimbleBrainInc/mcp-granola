@@ -149,6 +149,47 @@ class TestGetMeetingStatsTool:
         assert result is not None
 
 
+class TestV6SearchMeetingsTool:
+    @pytest.mark.asyncio
+    async def test_search_finds_prosemirror_content(self, mcp_server_v6):
+        """Search returns results from ProseMirror-only documents."""
+        async with Client(mcp_server_v6) as client:
+            result = await client.call_tool("search_meetings", {"query": "code review"})
+        assert result is not None
+
+    @pytest.mark.asyncio
+    async def test_search_with_attendee(self, mcp_server_v6):
+        async with Client(mcp_server_v6) as client:
+            result = await client.call_tool(
+                "search_meetings", {"query": "API", "attendee": "alice"}
+            )
+        assert result is not None
+
+
+class TestV6GetMeetingTool:
+    @pytest.mark.asyncio
+    async def test_v6_meeting_no_panels(self, mcp_server_v6):
+        """get_meeting on v6 data returns panels_available=False."""
+        async with Client(mcp_server_v6) as client:
+            result = await client.call_tool("get_meeting", {"meeting_id": "doc-001"})
+        assert result is not None
+
+    @pytest.mark.asyncio
+    async def test_v6_meeting_notes_fallback(self, mcp_server_v6):
+        """get_meeting extracts notes from ProseMirror when notes_plain is empty."""
+        async with Client(mcp_server_v6) as client:
+            result = await client.call_tool("get_meeting", {"meeting_id": "doc-002"})
+        assert result is not None
+
+
+class TestV6StatsTool:
+    @pytest.mark.asyncio
+    async def test_v6_stats(self, mcp_server_v6):
+        async with Client(mcp_server_v6) as client:
+            result = await client.call_tool("get_meeting_stats", {})
+        assert result is not None
+
+
 class TestToolListing:
     @pytest.mark.asyncio
     async def test_all_tools_registered(self, mcp_server):

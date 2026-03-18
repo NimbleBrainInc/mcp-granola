@@ -41,3 +41,9 @@ htmlcov/
 
 # MCPB bundles
 *.mcpb
+
+# Vendored dependencies (built by scripts/build-bundle.sh)
+deps/
+
+# Implementation tasks
+.tasks/

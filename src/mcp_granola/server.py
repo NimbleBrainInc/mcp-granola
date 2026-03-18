@@ -125,6 +125,7 @@ async def get_meeting(
         panels=[
             MeetingPanel(id=p["id"], title=p["title"], content=p["content"]) for p in doc["panels"]
         ],
+        panels_available=doc["panels_available"],
         has_transcript=doc["has_transcript"],
         transcript_segments=doc["transcript_segments"],
     )

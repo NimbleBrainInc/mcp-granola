@@ -16,6 +16,9 @@ build/
 
 # Dev config
 Makefile
+.tasks/
+CACHE_V6_MIGRATION.md
+scripts/
 pytest.ini
 .env
 .env.*

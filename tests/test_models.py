@@ -88,11 +88,13 @@ class TestMeetingDetails:
             notes_plain="Test",
             attendees=[MeetingAttendee(name="Alice", email="alice@example.com")],
             panels=[],
+            panels_available=True,
             has_transcript=False,
             transcript_segments=0,
         )
         assert details.updated_at is None
         assert details.has_transcript is False
+        assert details.panels_available is True
 
     def test_with_all_fields(self):
         details = MeetingDetails(
@@ -107,6 +109,7 @@ class TestMeetingDetails:
                 MeetingAttendee(name="B", email="b@x.com"),
             ],
             panels=[MeetingPanel(id="p1", title="Summary", content="text")],
+            panels_available=True,
             has_transcript=True,
             transcript_segments=5,
         )

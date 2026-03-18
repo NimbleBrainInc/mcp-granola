@@ -11,7 +11,8 @@ MCP server for searching your local [Granola](https://granola.ai) meeting notes.
 - Search across notes, titles, and AI summaries
 - Filter by date range or attendee
 - Pull transcripts when available
-- Read AI panels (summaries, action items) that Granola generates
+- Read AI panels (summaries, action items) when available
+- Supports Granola cache v3 through v6
 - Reloads automatically when Granola updates its cache
 
 ## Installation
@@ -42,7 +43,7 @@ uv run python -m mcp_granola.server
 
 ## Data Source
 
-Reads from `~/Library/Application Support/Granola/cache-v3.json` (macOS only). Cached in memory, reloads when the file changes.
+Auto-detects the newest Granola cache file (`cache-v6.json` through `cache-v3.json`) from `~/Library/Application Support/Granola/` (macOS only). Cached in memory, reloads when the file changes.
 
 ## Development
 

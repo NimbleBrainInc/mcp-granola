@@ -4,7 +4,17 @@ import json
 from pathlib import Path
 from typing import Any
 
-GRANOLA_PATH = Path.home() / "Library/Application Support/Granola/cache-v3.json"
+GRANOLA_DIR = Path.home() / "Library/Application Support/Granola"
+CACHE_VERSIONS = ["cache-v6.json", "cache-v5.json", "cache-v4.json", "cache-v3.json"]
+
+
+def _find_cache_path() -> Path | None:
+    """Find the newest available Granola cache file."""
+    for filename in CACHE_VERSIONS:
+        path = GRANOLA_DIR / filename
+        if path.exists():
+            return path
+    return None
 
 
 class GranolaData:
@@ -14,6 +24,7 @@ class GranolaData:
     _data: dict[str, Any] | None = None
     _last_modified: float | None = None
     _search_cache: dict[str, dict[str, Any]] | None = None
+    _cache_path: Path | None = None
 
     def __new__(cls) -> "GranolaData":
         if cls._instance is None:
@@ -22,22 +33,28 @@ class GranolaData:
 
     def _needs_reload(self) -> bool:
         """Check if data needs to be reloaded."""
-        if not GRANOLA_PATH.exists():
-            return False
-        current_mtime = GRANOLA_PATH.stat().st_mtime
+        if self._cache_path is None:
+            return self._data is None
+        if not self._cache_path.exists():
+            return self._data is None
+        current_mtime = self._cache_path.stat().st_mtime
         return self._data is None or current_mtime != self._last_modified
 
     def _load(self) -> dict[str, Any]:
         """Load data from file, refreshing if changed."""
         if self._needs_reload():
-            if not GRANOLA_PATH.exists():
+            self._cache_path = _find_cache_path()
+            if self._cache_path is None:
                 self._data = {"documents": {}, "transcripts": {}, "documentPanels": {}}
                 return self._data
 
-            with open(GRANOLA_PATH) as f:
+            with open(self._cache_path) as f:
                 raw = json.load(f)
-            self._data = json.loads(raw["cache"])["state"]
-            self._last_modified = GRANOLA_PATH.stat().st_mtime
+            cache = raw["cache"]
+            if isinstance(cache, str):
+                cache = json.loads(cache)
+            self._data = cache["state"]
+            self._last_modified = self._cache_path.stat().st_mtime
             self._search_cache = None  # Invalidate search cache
         return self._data or {}
 
@@ -78,7 +95,10 @@ class GranolaData:
         """Extract all searchable text from a document."""
         texts = []
         texts.append(doc.get("title") or "")
-        texts.append(doc.get("notes_plain") or "")
+        notes_plain = doc.get("notes_plain") or ""
+        if not notes_plain and doc.get("notes"):
+            notes_plain = self._extract_prosemirror_text(doc["notes"])
+        texts.append(notes_plain)
         texts.append(doc.get("notes_markdown") or "")
         if doc.get("summary"):
             texts.append(doc["summary"])
@@ -170,7 +190,9 @@ class GranolaData:
             if score > 0:
                 doc = self.documents[doc_id]
                 snippets = []
-                notes = doc.get("notes_plain", "")
+                notes = doc.get("notes_plain") or ""
+                if not notes and doc.get("notes"):
+                    notes = self._extract_prosemirror_text(doc["notes"])
                 if query_lower in notes.lower():
                     snippets.append(self._extract_snippet(notes, query))
 
@@ -202,15 +224,20 @@ class GranolaData:
             content = self._extract_panel_text(panel.get("content", {}))
             panels.append({"id": panel_id, "title": panel.get("title", ""), "content": content})
 
+        notes_plain = doc.get("notes_plain") or ""
+        if not notes_plain and doc.get("notes"):
+            notes_plain = self._extract_prosemirror_text(doc["notes"])
+
         return {
             "id": doc_id,
             "title": doc.get("title", ""),
             "created_at": doc.get("created_at", ""),
             "updated_at": doc.get("updated_at"),
             "notes_markdown": doc.get("notes_markdown", ""),
-            "notes_plain": doc.get("notes_plain", ""),
+            "notes_plain": notes_plain,
             "attendees": self._get_attendees(doc),
             "panels": panels,
+            "panels_available": "documentPanels" in self._load(),
             "has_transcript": len(transcript) > 0,
             "transcript_segments": len(transcript),
         }
