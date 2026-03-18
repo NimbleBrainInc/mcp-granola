@@ -1,0 +1,287 @@
+{
+  "cache": {
+    "version": 5,
+    "state": {
+      "documents": {
+        "doc-001": {
+          "title": "Q1 Planning Session",
+          "created_at": "2025-01-15T10:00:00Z",
+          "updated_at": "2025-01-15T11:30:00Z",
+          "notes_plain": "Discussed Q1 roadmap priorities. Key items: launch new API, hire two engineers, improve onboarding flow.",
+          "notes_markdown": "# Q1 Planning\n\n- Launch new API\n- Hire two engineers\n- Improve onboarding flow",
+          "notes": {
+            "type": "doc",
+            "content": [
+              {
+                "type": "heading",
+                "content": [{"type": "text", "text": "Q1 Planning"}]
+              },
+              {
+                "type": "bulletList",
+                "content": [
+                  {"type": "listItem", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Launch new API"}]}]},
+                  {"type": "listItem", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Hire two engineers"}]}]},
+                  {"type": "listItem", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Improve onboarding flow"}]}]}
+                ]
+              }
+            ]
+          },
+          "summary": "",
+          "overview": "",
+          "type": "meeting",
+          "creation_source": "macOS",
+          "privacy_mode_enabled": false,
+          "workspace_id": "ws-001",
+          "google_calendar_event": null,
+          "people": {
+            "creator": {
+              "name": "Alice Chen",
+              "email": "alice@example.com",
+              "details": {
+                "person": {"name": {"fullName": "Alice Chen"}, "avatar": "https://example.com/alice.jpg", "employment": {"name": "Acme Corp"}},
+                "company": {"name": "Acme Corp"}
+              }
+            },
+            "attendees": [
+              {
+                "name": "Bob Smith",
+                "email": "bob@example.com",
+                "details": {
+                  "person": {"name": {"fullName": "Bob Smith"}, "avatar": "https://example.com/bob.jpg", "employment": {"name": "Acme Corp"}},
+                  "company": {"name": "Acme Corp"}
+                }
+              },
+              {
+                "name": "Carol Davis",
+                "email": "carol@example.com",
+                "details": {
+                  "person": {"name": {"fullName": "Carol Davis"}, "avatar": null, "employment": {"name": "Acme Corp"}},
+                  "company": {"name": "Acme Corp"}
+                }
+              }
+            ]
+          }
+        },
+        "doc-002": {
+          "title": "Design Review: Onboarding",
+          "created_at": "2025-01-20T14:00:00Z",
+          "updated_at": "2025-01-20T15:00:00Z",
+          "notes_plain": "",
+          "notes_markdown": "",
+          "notes": {
+            "type": "doc",
+            "content": [
+              {
+                "type": "heading",
+                "content": [{"type": "text", "text": "Design Review"}]
+              },
+              {
+                "type": "paragraph",
+                "content": [{"type": "text", "text": "Reviewed new onboarding mockups. Decided to simplify the signup flow to three steps."}]
+              }
+            ]
+          },
+          "summary": "",
+          "overview": "",
+          "type": "meeting",
+          "creation_source": "macOS",
+          "privacy_mode_enabled": false,
+          "workspace_id": "ws-001",
+          "google_calendar_event": null,
+          "people": {
+            "creator": {
+              "name": "Carol Davis",
+              "email": "carol@example.com"
+            },
+            "attendees": [
+              {"name": "Alice Chen", "email": "alice@example.com"}
+            ]
+          }
+        },
+        "doc-003": {
+          "title": "Sprint Retrospective",
+          "created_at": "2025-02-01T09:00:00Z",
+          "updated_at": null,
+          "notes_plain": "",
+          "notes_markdown": "",
+          "notes": {
+            "type": "doc",
+            "content": [
+              {
+                "type": "heading",
+                "content": [{"type": "text", "text": "Retro"}]
+              },
+              {
+                "type": "bulletList",
+                "content": [
+                  {"type": "listItem", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Good velocity this sprint"}]}]},
+                  {"type": "listItem", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Need to improve code review turnaround time"}]}]}
+                ]
+              }
+            ]
+          },
+          "summary": "",
+          "overview": "",
+          "type": "meeting",
+          "creation_source": "macOS",
+          "privacy_mode_enabled": true,
+          "workspace_id": "ws-001",
+          "google_calendar_event": null,
+          "people": {
+            "creator": {
+              "name": "Bob Smith",
+              "email": "bob@example.com"
+            },
+            "attendees": [
+              {"name": "Alice Chen", "email": "alice@example.com"},
+              {"name": "Dave Wilson", "email": "dave@example.com"}
+            ]
+          }
+        },
+        "doc-004": {
+          "title": "API Architecture Discussion",
+          "created_at": "2025-02-10T11:00:00Z",
+          "updated_at": "2025-02-10T12:00:00Z",
+          "notes_plain": "Debated REST vs GraphQL for the new API. Decided on REST with OpenAPI spec. Will use FastAPI.",
+          "notes_markdown": "# API Architecture\n\n- REST over GraphQL\n- OpenAPI spec\n- FastAPI framework",
+          "notes": {
+            "type": "doc",
+            "content": [
+              {
+                "type": "heading",
+                "content": [{"type": "text", "text": "API Architecture"}]
+              },
+              {
+                "type": "bulletList",
+                "content": [
+                  {"type": "listItem", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "REST over GraphQL"}]}]},
+                  {"type": "listItem", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "OpenAPI spec"}]}]},
+                  {"type": "listItem", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "FastAPI framework"}]}]}
+                ]
+              }
+            ]
+          },
+          "summary": "",
+          "overview": "",
+          "type": "meeting",
+          "creation_source": "macOS",
+          "privacy_mode_enabled": false,
+          "workspace_id": "ws-001",
+          "google_calendar_event": {
+            "summary": "API Architecture Discussion",
+            "htmlLink": "https://calendar.google.com/event/abc123"
+          },
+          "people": {
+            "creator": {
+              "name": "Alice Chen",
+              "email": "alice@example.com",
+              "details": {
+                "person": {"name": {"fullName": "Alice Chen"}, "avatar": "https://example.com/alice.jpg", "employment": {"name": "Acme Corp"}},
+                "company": {"name": "Acme Corp"}
+              }
+            },
+            "attendees": [
+              {
+                "name": "Bob Smith",
+                "email": "bob@example.com",
+                "details": {
+                  "person": {"name": {"fullName": "Bob Smith"}, "avatar": "https://example.com/bob.jpg", "employment": {"name": "Acme Corp"}},
+                  "company": {"name": "Acme Corp"}
+                }
+              },
+              {
+                "name": "Eve Martinez",
+                "email": "eve@example.com",
+                "details": {
+                  "person": {"name": {"fullName": "Eve Martinez"}, "avatar": null, "employment": {"name": "Other Inc"}},
+                  "company": {"name": "Other Inc"}
+                }
+              }
+            ]
+          }
+        },
+        "doc-005": {
+          "title": "1:1 with Carol",
+          "created_at": "2025-02-15T16:00:00Z",
+          "updated_at": "2025-02-15T16:30:00Z",
+          "notes_plain": "Career growth discussion. Carol interested in tech lead role. Set up mentoring plan.",
+          "notes_markdown": "# 1:1 Carol\n\n- Career growth\n- Tech lead path\n- Mentoring plan",
+          "notes": {
+            "type": "doc",
+            "content": [
+              {
+                "type": "heading",
+                "content": [{"type": "text", "text": "1:1 Carol"}]
+              },
+              {
+                "type": "bulletList",
+                "content": [
+                  {"type": "listItem", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Career growth"}]}]},
+                  {"type": "listItem", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Tech lead path"}]}]},
+                  {"type": "listItem", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Mentoring plan"}]}]}
+                ]
+              }
+            ]
+          },
+          "summary": "",
+          "overview": "",
+          "type": "meeting",
+          "creation_source": "macOS",
+          "privacy_mode_enabled": false,
+          "workspace_id": "ws-001",
+          "google_calendar_event": null,
+          "people": {
+            "creator": {
+              "name": "Alice Chen",
+              "email": "alice@example.com"
+            },
+            "attendees": [
+              {"name": "Carol Davis", "email": "carol@example.com"}
+            ]
+          }
+        }
+      },
+      "transcripts": {
+        "doc-001": [
+          {
+            "text": "Let's start with the Q1 priorities.",
+            "start_timestamp": "00:00:05",
+            "end_timestamp": "00:00:08",
+            "source": "speaker_1"
+          },
+          {
+            "text": "I think the API launch should be our top priority.",
+            "start_timestamp": "00:00:10",
+            "end_timestamp": "00:00:14",
+            "source": "speaker_2"
+          },
+          {
+            "text": "Agreed. We also need to hire two more engineers.",
+            "start_timestamp": "00:00:15",
+            "end_timestamp": "00:00:19",
+            "source": "speaker_1"
+          }
+        ],
+        "doc-004": [
+          {
+            "text": "Should we go with REST or GraphQL?",
+            "start_timestamp": "00:01:00",
+            "end_timestamp": "00:01:04",
+            "source": "speaker_1"
+          },
+          {
+            "text": "REST is simpler and better for our use case.",
+            "start_timestamp": "00:01:05",
+            "end_timestamp": "00:01:09",
+            "source": "speaker_2"
+          }
+        ]
+      },
+      "entities": {
+        "chat_thread": {},
+        "chat_message": {}
+      },
+      "meetingsMetadata": {}
+    }
+  }
+}

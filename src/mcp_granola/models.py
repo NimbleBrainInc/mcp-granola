@@ -47,6 +47,7 @@ class MeetingDetails(BaseModel):
     notes_plain: str
     attendees: list[MeetingAttendee]
     panels: list[MeetingPanel]
+    panels_available: bool
     has_transcript: bool
     transcript_segments: int
 

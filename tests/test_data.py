@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import patch
 
-from mcp_granola.data import GranolaData, get_data
+from mcp_granola.data import CACHE_VERSIONS, GranolaData, _find_cache_path, get_data
 
 
 class TestGranolaSingleton:
@@ -39,24 +39,25 @@ class TestDataLoading:
         assert "panel-001" in granola_data.panels["doc-001"]
 
     def test_missing_file_returns_empty(self):
-        """When the Granola cache file doesn't exist, properties return empty."""
+        """When no Granola cache file exists, properties return empty."""
         import mcp_granola.data as data_module
 
-        original = data_module.GRANOLA_PATH
+        original = data_module.GRANOLA_DIR
         try:
-            data_module.GRANOLA_PATH = Path("/nonexistent/path.json")
+            data_module.GRANOLA_DIR = Path("/nonexistent/dir")
             data = GranolaData()
             data._data = None
             data._last_modified = None
-            # _needs_reload returns False for missing file, so _load returns {}
+            data._cache_path = None
             assert data.documents == {}
             assert data.transcripts == {}
             assert data.panels == {}
         finally:
-            data_module.GRANOLA_PATH = original
+            data_module.GRANOLA_DIR = original
 
     def test_reload_on_file_change(self, granola_data: GranolaData):
         """Changing mtime triggers reload detection."""
+        granola_data._cache_path = Path("/tmp/fake-cache.json")
         granola_data._last_modified = 0.0  # Old mtime
         with patch.object(Path, "exists", return_value=True):
             with patch.object(Path, "stat") as mock_stat:
@@ -397,3 +398,144 @@ class TestGetStats:
     def test_stats_total_transcripts(self, granola_data: GranolaData):
         stats = granola_data.get_stats()
         assert stats["total_transcripts"] == 2
+
+
+class TestCacheAutoDetection:
+    def test_find_cache_path_prefers_highest_version(self, tmp_path: Path):
+        """Auto-detection returns the highest version cache file."""
+        import mcp_granola.data as data_module
+
+        original = data_module.GRANOLA_DIR
+        try:
+            data_module.GRANOLA_DIR = tmp_path
+            (tmp_path / "cache-v3.json").touch()
+            (tmp_path / "cache-v6.json").touch()
+            result = _find_cache_path()
+            assert result is not None
+            assert result.name == "cache-v6.json"
+        finally:
+            data_module.GRANOLA_DIR = original
+
+    def test_find_cache_path_falls_back(self, tmp_path: Path):
+        """Falls back to lower versions when higher ones don't exist."""
+        import mcp_granola.data as data_module
+
+        original = data_module.GRANOLA_DIR
+        try:
+            data_module.GRANOLA_DIR = tmp_path
+            (tmp_path / "cache-v3.json").touch()
+            result = _find_cache_path()
+            assert result is not None
+            assert result.name == "cache-v3.json"
+        finally:
+            data_module.GRANOLA_DIR = original
+
+    def test_find_cache_path_returns_none_when_empty(self, tmp_path: Path):
+        """Returns None when no cache files exist."""
+        import mcp_granola.data as data_module
+
+        original = data_module.GRANOLA_DIR
+        try:
+            data_module.GRANOLA_DIR = tmp_path
+            assert _find_cache_path() is None
+        finally:
+            data_module.GRANOLA_DIR = original
+
+    def test_cache_versions_order(self):
+        """Cache versions are ordered highest to lowest."""
+        assert CACHE_VERSIONS[0] == "cache-v6.json"
+        assert CACHE_VERSIONS[-1] == "cache-v3.json"
+
+
+class TestV6DataLoading:
+    def test_load_v6_documents(self, granola_data_v6: GranolaData):
+        """v6 fixture loads with correct document count."""
+        assert len(granola_data_v6.documents) == 5
+
+    def test_v6_no_panels(self, granola_data_v6: GranolaData):
+        """v6 data has no documentPanels."""
+        assert granola_data_v6.panels == {}
+
+    def test_v6_transcripts_unchanged(self, granola_data_v6: GranolaData):
+        """v6 transcripts have the same structure as v3."""
+        assert "doc-001" in granola_data_v6.transcripts
+        assert len(granola_data_v6.transcripts["doc-001"]) == 3
+
+    def test_v6_documents_have_notes_field(self, granola_data_v6: GranolaData):
+        """v6 documents have ProseMirror notes field."""
+        doc = granola_data_v6.documents["doc-001"]
+        assert "notes" in doc
+        assert doc["notes"]["type"] == "doc"
+
+
+class TestV6ProseMirrorFallback:
+    def test_fallback_populates_notes_plain(self, granola_data_v6: GranolaData):
+        """When notes_plain is empty, get_document extracts from ProseMirror notes."""
+        doc = granola_data_v6.get_document("doc-002")
+        assert doc is not None
+        # doc-002 has empty notes_plain but populated ProseMirror notes
+        assert "onboarding" in doc["notes_plain"].lower()
+
+    def test_no_fallback_when_notes_plain_exists(self, granola_data_v6: GranolaData):
+        """When notes_plain is populated, it's returned as-is."""
+        doc = granola_data_v6.get_document("doc-001")
+        assert doc is not None
+        assert (
+            doc["notes_plain"]
+            == "Discussed Q1 roadmap priorities. Key items: launch new API, hire two engineers, improve onboarding flow."
+        )
+
+    def test_search_finds_prosemirror_only_docs(self, granola_data_v6: GranolaData):
+        """Search indexes content from ProseMirror-only documents."""
+        # doc-003 has empty notes_plain but ProseMirror notes with "code review"
+        results = granola_data_v6.search("code review")
+        titles = [r["title"] for r in results]
+        assert "Sprint Retrospective" in titles
+
+
+class TestV6PanelsAvailable:
+    def test_v3_panels_available(self, granola_data: GranolaData):
+        """v3 data reports panels as available."""
+        doc = granola_data.get_document("doc-001")
+        assert doc is not None
+        assert doc["panels_available"] is True
+
+    def test_v6_panels_not_available(self, granola_data_v6: GranolaData):
+        """v6 data reports panels as not available."""
+        doc = granola_data_v6.get_document("doc-001")
+        assert doc is not None
+        assert doc["panels_available"] is False
+        assert doc["panels"] == []
+
+    def test_v3_panels_have_content(self, granola_data: GranolaData):
+        """v3 panels contain extracted text."""
+        doc = granola_data.get_document("doc-001")
+        assert doc is not None
+        assert len(doc["panels"]) == 2
+        panel_titles = [p["title"] for p in doc["panels"]]
+        assert "Action Items" in panel_titles
+
+
+class TestV6Attendees:
+    def test_v6_enriched_attendees_still_work(self, granola_data_v6: GranolaData):
+        """Attendee extraction works with v6 enriched people data."""
+        doc = granola_data_v6.documents["doc-001"]
+        attendees = granola_data_v6._get_attendees(doc)
+        emails = {a["email"] for a in attendees}
+        assert "alice@example.com" in emails
+        assert "bob@example.com" in emails
+        assert "carol@example.com" in emails
+
+    def test_v6_search_by_person(self, granola_data_v6: GranolaData):
+        """search_by_person works with v6 data."""
+        results = granola_data_v6.search_by_person("Alice")
+        assert len(results) >= 3
+
+
+class TestV6Stats:
+    def test_v6_stats(self, granola_data_v6: GranolaData):
+        """Stats work correctly with v6 data."""
+        stats = granola_data_v6.get_stats()
+        assert stats["total_documents"] == 5
+        assert stats["documents_with_transcripts"] == 2
+        assert stats["unique_attendees"] >= 4
