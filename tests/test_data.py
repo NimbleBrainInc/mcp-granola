@@ -492,6 +492,14 @@ class TestV6ProseMirrorFallback:
         titles = [r["title"] for r in results]
         assert "Sprint Retrospective" in titles
 
+    def test_search_snippets_from_prosemirror_only_docs(self, granola_data_v6: GranolaData):
+        """Search returns snippets for ProseMirror-only documents."""
+        # doc-002 has empty notes_plain but ProseMirror notes with "onboarding"
+        results = granola_data_v6.search("onboarding")
+        matching = [r for r in results if r["title"] == "Design Review: Onboarding"]
+        assert len(matching) == 1
+        assert len(matching[0]["snippets"]) >= 1
+
 
 class TestV6PanelsAvailable:
     def test_v3_panels_available(self, granola_data: GranolaData):

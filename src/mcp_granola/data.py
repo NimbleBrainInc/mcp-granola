@@ -44,7 +44,7 @@ class GranolaData:
         """Load data from file, refreshing if changed."""
         if self._needs_reload():
             self._cache_path = _find_cache_path()
-            if self._cache_path is None or not self._cache_path.exists():
+            if self._cache_path is None:
                 self._data = {"documents": {}, "transcripts": {}, "documentPanels": {}}
                 return self._data
 
@@ -190,7 +190,9 @@ class GranolaData:
             if score > 0:
                 doc = self.documents[doc_id]
                 snippets = []
-                notes = doc.get("notes_plain", "")
+                notes = doc.get("notes_plain") or ""
+                if not notes and doc.get("notes"):
+                    notes = self._extract_prosemirror_text(doc["notes"])
                 if query_lower in notes.lower():
                     snippets.append(self._extract_snippet(notes, query))
 
