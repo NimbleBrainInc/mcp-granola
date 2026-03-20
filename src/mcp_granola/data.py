@@ -113,7 +113,7 @@ class GranolaData:
     def _get_attendees(self, doc: dict[str, Any]) -> list[dict[str, str]]:
         """Extract attendees from a document."""
         attendees = []
-        people = doc.get("people", {})
+        people = doc.get("people") or {}
 
         # Creator
         creator = people.get("creator", {})
