@@ -234,10 +234,10 @@ class GranolaData:
 
         return {
             "id": doc_id,
-            "title": doc.get("title", ""),
-            "created_at": doc.get("created_at", ""),
+            "title": doc.get("title") or "",
+            "created_at": doc.get("created_at") or "",
             "updated_at": doc.get("updated_at"),
-            "notes_markdown": doc.get("notes_markdown", ""),
+            "notes_markdown": doc.get("notes_markdown") or "",
             "notes_plain": notes_plain,
             "attendees": self._get_attendees(doc),
             "panels": panels,
