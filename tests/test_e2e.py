@@ -114,3 +114,119 @@ class TestE2EPaginationConsistency:
                 offset += 2
 
             assert len(all_ids) == total
+
+
+class TestE2ESearchByPersonDateFilter:
+    """Verify search_by_person date filtering works through the MCP layer."""
+
+    @pytest.mark.asyncio
+    async def test_date_from_filters_old_meetings(self, mcp_server):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "search_by_person",
+                {"person": "Alice", "date_from": "2025-02-01"},
+            )
+            data = json.loads(_extract_text(result))
+            for m in data["meetings"]:
+                assert m["date"] >= "2025-02-01"
+
+    @pytest.mark.asyncio
+    async def test_date_range_scopes_results(self, mcp_server):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "search_by_person",
+                {
+                    "person": "Alice",
+                    "date_from": "2025-01-15",
+                    "date_to": "2025-01-20",
+                },
+            )
+            data = json.loads(_extract_text(result))
+            for m in data["meetings"]:
+                assert "2025-01-15" <= m["date"] <= "2025-01-20"
+
+
+class TestE2ESummarizeMeetings:
+    """Verify summarize_meetings tool works through the MCP layer."""
+
+    @pytest.mark.asyncio
+    async def test_summarize_with_date_range(self, mcp_server):
+        """summarize_meetings with date_from/date_to returns meetings with notes."""
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "summarize_meetings",
+                {"date_from": "2025-01-01", "date_to": "2025-02-28"},
+            )
+            data = json.loads(_extract_text(result))
+            assert data["total"] >= 1
+            for m in data["meetings"]:
+                assert "notes_plain" in m
+                assert "attendees" in m
+                assert "title" in m
+
+    @pytest.mark.asyncio
+    async def test_summarize_with_person(self, mcp_server):
+        """summarize_meetings can filter by person."""
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "summarize_meetings",
+                {
+                    "date_from": "2025-01-01",
+                    "date_to": "2025-12-31",
+                    "person": "Carol",
+                },
+            )
+            data = json.loads(_extract_text(result))
+            assert data["total"] >= 1
+
+    @pytest.mark.asyncio
+    async def test_summarize_default_without_params(self, mcp_server):
+        """summarize_meetings with no params defaults to last 7 days (no error)."""
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("summarize_meetings", {})
+            data = json.loads(_extract_text(result))
+            assert "total" in data
+            assert "date_from" in data
+            assert "date_to" in data
+
+
+class TestE2EExtractActionItems:
+    """Verify extract_action_items tool works through the MCP layer."""
+
+    @pytest.mark.asyncio
+    async def test_action_items_single_meeting(self, mcp_server):
+        """extract_action_items returns items from a single meeting."""
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "extract_action_items",
+                {"meeting_id": "doc-001"},
+            )
+            data = json.loads(_extract_text(result))
+            assert data["total"] >= 1
+            for item in data["action_items"]:
+                assert "action" in item
+                assert "meeting_id" in item
+                assert "meeting_title" in item
+
+    @pytest.mark.asyncio
+    async def test_action_items_date_range(self, mcp_server):
+        """extract_action_items returns items across a date range."""
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "extract_action_items",
+                {"date_from": "2025-01-01", "date_to": "2025-02-28"},
+            )
+            data = json.loads(_extract_text(result))
+            assert data["total"] >= 1
+
+    @pytest.mark.asyncio
+    async def test_action_items_nonexistent_meeting(self, mcp_server):
+        """extract_action_items with invalid meeting_id returns empty."""
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "extract_action_items",
+                {"meeting_id": "nonexistent"},
+            )
+            data = json.loads(_extract_text(result))
+            assert data["total"] == 0
+            assert data["action_items"] == []

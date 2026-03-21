@@ -1,5 +1,6 @@
 """Granola MCP Server - Search and extract from meeting notes."""
 
+from datetime import date, timedelta
 from importlib.resources import files
 
 from fastmcp import Context, FastMCP
@@ -8,14 +9,18 @@ from starlette.responses import JSONResponse
 
 from .data import get_data
 from .models import (
+    ActionItem,
+    ActionItemsResponse,
     DataStats,
     ListMeetingsResponse,
     MeetingAttendee,
     MeetingDetails,
     MeetingListItem,
     MeetingPanel,
+    MeetingSummary,
     SearchResponse,
     SearchResult,
+    SummarizeMeetingsResponse,
     TranscriptResponse,
     TranscriptSegment,
 )
@@ -30,6 +35,12 @@ mcp = FastMCP(
 )
 
 SKILL_CONTENT = files("mcp_granola").joinpath("SKILL.md").read_text()
+
+
+def _resolve_days(days: int) -> tuple[str, str]:
+    """Convert 'last N days' into (date_from, date_to) ISO date strings."""
+    today = date.today()
+    return (today - timedelta(days=days)).isoformat(), today.isoformat()
 
 
 @mcp.resource("skill://granola/usage")
@@ -205,6 +216,8 @@ async def list_meetings(
 async def search_by_person(
     person: str,
     limit: int = 20,
+    date_from: str | None = None,
+    date_to: str | None = None,
     ctx: Context | None = None,
 ) -> ListMeetingsResponse:
     """Find all meetings involving a specific person.
@@ -212,6 +225,8 @@ async def search_by_person(
     Args:
         person: Person's name or email address
         limit: Maximum results (default: 20)
+        date_from: Filter by start date (YYYY-MM-DD)
+        date_to: Filter by end date (YYYY-MM-DD)
         ctx: MCP context
 
     Returns:
@@ -221,7 +236,7 @@ async def search_by_person(
         await ctx.info(f"Searching meetings with: {person}")
 
     data = get_data()
-    items = data.search_by_person(person=person, limit=limit)
+    items = data.search_by_person(person=person, limit=limit, date_from=date_from, date_to=date_to)
 
     return ListMeetingsResponse(
         total=len(items),
@@ -282,6 +297,129 @@ async def get_transcript(
         ],
         total_segments=result["total_segments"],
         format=result["format"],
+    )
+
+
+@mcp.tool()
+async def summarize_meetings(
+    date_from: str | None = None,
+    date_to: str | None = None,
+    days: int | None = None,
+    person: str | None = None,
+    ctx: Context | None = None,
+) -> SummarizeMeetingsResponse:
+    """Get meeting summaries with notes for a time period.
+
+    Use this when asked to summarize, recap, or review meetings over a period.
+    Provide either date_from/date_to (YYYY-MM-DD) or days (last N days).
+
+    Args:
+        date_from: Start date (YYYY-MM-DD)
+        date_to: End date (YYYY-MM-DD)
+        days: Convenience shortcut: last N days from today
+        person: Filter by attendee name or email
+        ctx: MCP context
+
+    Returns:
+        Meetings with their notes and attendees
+    """
+    if date_from or date_to:
+        if not date_from:
+            date_from = "2000-01-01"
+        if not date_to:
+            date_to = date.today().isoformat()
+    elif days is not None:
+        date_from, date_to = _resolve_days(days)
+    else:
+        date_from, date_to = _resolve_days(7)
+
+    if ctx:
+        await ctx.info(f"Summarizing meetings from {date_from} to {date_to}")
+
+    data = get_data()
+    results = data.get_meeting_summaries(date_from=date_from, date_to=date_to, person=person)
+
+    return SummarizeMeetingsResponse(
+        total=len(results),
+        date_from=date_from,
+        date_to=date_to,
+        meetings=[
+            MeetingSummary(
+                id=r["id"],
+                title=r["title"],
+                date=r["date"],
+                notes_plain=r["notes_plain"],
+                attendees=[
+                    MeetingAttendee(name=a["name"], email=a["email"]) for a in r["attendees"]
+                ],
+            )
+            for r in results
+        ],
+    )
+
+
+@mcp.tool()
+async def extract_action_items(
+    meeting_id: str | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
+    days: int | None = None,
+    person: str | None = None,
+    ctx: Context | None = None,
+) -> ActionItemsResponse:
+    """Extract action items from meeting notes.
+
+    Use this when asked for action items, TODOs, or next steps.
+    Can target a single meeting by ID, or scan multiple meetings by date range.
+
+    Args:
+        meeting_id: Specific meeting ID to extract from (takes precedence)
+        date_from: Start date (YYYY-MM-DD) for scanning multiple meetings
+        date_to: End date (YYYY-MM-DD) for scanning multiple meetings
+        days: Convenience shortcut: last N days from today
+        person: Filter by attendee name or email (only with date range)
+        ctx: MCP context
+
+    Returns:
+        Extracted action items with source meeting context
+    """
+    if not meeting_id:
+        if date_from or date_to:
+            if not date_from:
+                date_from = "2000-01-01"
+            if not date_to:
+                date_to = date.today().isoformat()
+        elif days is not None:
+            date_from, date_to = _resolve_days(days)
+        else:
+            date_from, date_to = _resolve_days(7)
+
+    if ctx:
+        if meeting_id:
+            await ctx.info(f"Extracting action items from meeting: {meeting_id}")
+        else:
+            await ctx.info(f"Extracting action items from {date_from} to {date_to}")
+
+    data = get_data()
+    items = data.extract_action_items(
+        meeting_id=meeting_id,
+        date_from=date_from,
+        date_to=date_to,
+        person=person,
+    )
+
+    return ActionItemsResponse(
+        total=len(items),
+        action_items=[
+            ActionItem(
+                action=item["action"],
+                meeting_id=item["meeting_id"],
+                meeting_title=item["meeting_title"],
+                meeting_date=item["meeting_date"],
+                source=item["source"],
+            )
+            for item in items
+        ],
     )
 
 

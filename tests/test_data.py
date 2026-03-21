@@ -352,6 +352,37 @@ class TestSearchByPerson:
         results = granola_data.search_by_person("Alice", limit=1)
         assert len(results) <= 1
 
+    def test_date_from_filter(self, granola_data: GranolaData):
+        """search_by_person with date_from excludes older meetings."""
+        # Alice has meetings in Jan and Feb 2025
+        results = granola_data.search_by_person("Alice", date_from="2025-02-01")
+        for r in results:
+            assert r["date"] >= "2025-02-01"
+        # Should have fewer results than without date filter
+        all_results = granola_data.search_by_person("Alice")
+        assert len(results) < len(all_results)
+
+    def test_date_to_filter(self, granola_data: GranolaData):
+        """search_by_person with date_to excludes newer meetings."""
+        results = granola_data.search_by_person("Alice", date_to="2025-01-31")
+        for r in results:
+            assert r["date"] <= "2025-01-31"
+        all_results = granola_data.search_by_person("Alice")
+        assert len(results) < len(all_results)
+
+    def test_date_range_filter(self, granola_data: GranolaData):
+        """search_by_person with both date_from and date_to scopes correctly."""
+        results = granola_data.search_by_person(
+            "Alice", date_from="2025-01-15", date_to="2025-01-20"
+        )
+        for r in results:
+            assert "2025-01-15" <= r["date"] <= "2025-01-20"
+
+    def test_date_filter_no_results(self, granola_data: GranolaData):
+        """Date range with no meetings returns empty."""
+        results = granola_data.search_by_person("Alice", date_from="2026-01-01")
+        assert results == []
+
 
 class TestGetTranscript:
     def test_with_transcript(self, granola_data: GranolaData):
@@ -615,3 +646,131 @@ class TestV6Stats:
         assert stats["total_documents"] == 5
         assert stats["documents_with_transcripts"] == 2
         assert stats["unique_attendees"] >= 4
+
+
+class TestGetMeetingSummaries:
+    """Tests for the get_meeting_summaries method that returns meetings
+    with their notes for a given duration."""
+
+    def test_returns_meetings_in_range(self, granola_data: GranolaData):
+        """Meetings within the duration are returned."""
+        # Fixture has meetings from 2025-01-15 to 2025-02-15
+        results = granola_data.get_meeting_summaries(date_from="2025-02-01", date_to="2025-02-28")
+        assert len(results) >= 1
+        for r in results:
+            assert r["date"] >= "2025-02-01"
+            assert r["date"] <= "2025-02-28"
+
+    def test_excludes_meetings_outside_range(self, granola_data: GranolaData):
+        """Meetings outside the duration are excluded."""
+        results = granola_data.get_meeting_summaries(date_from="2025-02-01", date_to="2025-02-28")
+        for r in results:
+            assert r["date"] >= "2025-02-01"
+        # Jan meetings should not appear
+        jan_results = [r for r in results if r["date"].startswith("2025-01")]
+        assert len(jan_results) == 0
+
+    def test_includes_notes_and_attendees(self, granola_data: GranolaData):
+        """Each result includes notes and attendee info."""
+        results = granola_data.get_meeting_summaries(date_from="2025-01-01", date_to="2025-12-31")
+        assert len(results) == 5
+        for r in results:
+            assert "id" in r
+            assert "title" in r
+            assert "date" in r
+            assert "notes_plain" in r
+            assert "attendees" in r
+            assert isinstance(r["attendees"], list)
+
+    def test_sorted_newest_first(self, granola_data: GranolaData):
+        """Results are sorted by date descending."""
+        results = granola_data.get_meeting_summaries(date_from="2025-01-01", date_to="2025-12-31")
+        dates = [r["date"] for r in results]
+        assert dates == sorted(dates, reverse=True)
+
+    def test_with_person_filter(self, granola_data: GranolaData):
+        """Can filter by person within the date range."""
+        results = granola_data.get_meeting_summaries(
+            date_from="2025-01-01", date_to="2025-12-31", person="Carol"
+        )
+        assert len(results) >= 1
+        for r in results:
+            attendee_names = [a["name"].lower() for a in r["attendees"]]
+            attendee_emails = [a["email"].lower() for a in r["attendees"]]
+            assert any("carol" in n for n in attendee_names) or any(
+                "carol" in e for e in attendee_emails
+            )
+
+    def test_empty_range(self, granola_data: GranolaData):
+        """Date range with no meetings returns empty list."""
+        results = granola_data.get_meeting_summaries(date_from="2026-01-01", date_to="2026-12-31")
+        assert results == []
+
+    def test_notes_plain_populated(self, granola_data: GranolaData):
+        """notes_plain is populated (not empty) for meetings that have notes."""
+        results = granola_data.get_meeting_summaries(date_from="2025-01-15", date_to="2025-01-15")
+        assert len(results) == 1
+        assert "Q1 roadmap" in results[0]["notes_plain"]
+
+
+class TestExtractActionItems:
+    """Tests for the extract_action_items method that parses action items
+    from meeting notes."""
+
+    def test_single_meeting_by_id(self, granola_data: GranolaData):
+        """Extracts action items from a specific meeting."""
+        # doc-001 has panels with "Launch API by end of Q1" and "Post job listings"
+        # and notes with "launch new API, hire two engineers, improve onboarding flow"
+        items = granola_data.extract_action_items(meeting_id="doc-001")
+        assert len(items) >= 1
+        # Each item should have the meeting context
+        for item in items:
+            assert "action" in item
+            assert "meeting_id" in item
+            assert "meeting_title" in item
+            assert "meeting_date" in item
+            assert item["meeting_id"] == "doc-001"
+
+    def test_action_items_from_panels(self, granola_data: GranolaData):
+        """Action items are extracted from panel content (e.g., 'Action Items' panel)."""
+        items = granola_data.extract_action_items(meeting_id="doc-001")
+        action_texts = [item["action"] for item in items]
+        # The "Action Items" panel has these bullet points
+        assert any("Launch API" in a for a in action_texts)
+        assert any("job listings" in a or "engineers" in a for a in action_texts)
+
+    def test_action_items_from_date_range(self, granola_data: GranolaData):
+        """Extracts action items across meetings in a date range."""
+        items = granola_data.extract_action_items(date_from="2025-01-01", date_to="2025-02-28")
+        assert len(items) >= 1
+        # Items from multiple meetings
+        meeting_ids = {item["meeting_id"] for item in items}
+        assert len(meeting_ids) >= 1
+
+    def test_nonexistent_meeting_returns_empty(self, granola_data: GranolaData):
+        """Non-existent meeting ID returns empty list."""
+        items = granola_data.extract_action_items(meeting_id="nonexistent")
+        assert items == []
+
+    def test_meeting_without_action_items(self, granola_data: GranolaData):
+        """Meeting with no action-oriented content returns empty list."""
+        # doc-002 "Design Review" - has notes but no explicit action items panel
+        # May or may not extract items depending on the heuristic
+        items = granola_data.extract_action_items(meeting_id="doc-002")
+        # At minimum, should not crash
+        assert isinstance(items, list)
+
+    def test_action_items_with_person_filter(self, granola_data: GranolaData):
+        """Can filter action items by person across a date range."""
+        items = granola_data.extract_action_items(
+            date_from="2025-01-01", date_to="2025-12-31", person="Carol"
+        )
+        # Should only have items from meetings where Carol attended
+        for item in items:
+            doc = granola_data.get_document(item["meeting_id"])
+            assert doc is not None
+            attendee_names = [a["name"].lower() for a in doc["attendees"]]
+            attendee_emails = [a["email"].lower() for a in doc["attendees"]]
+            assert any("carol" in n for n in attendee_names) or any(
+                "carol" in e for e in attendee_emails
+            )
