@@ -118,7 +118,9 @@ class GranolaData:
         # Creator
         creator = people.get("creator", {})
         if creator and creator.get("email"):
-            attendees.append({"name": creator.get("name") or "", "email": creator.get("email") or ""})
+            attendees.append(
+                {"name": creator.get("name") or "", "email": creator.get("email") or ""}
+            )
 
         # Attendees
         for att in people.get("attendees", []):
