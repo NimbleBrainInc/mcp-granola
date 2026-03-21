@@ -1,7 +1,7 @@
 {
   "manifest_version": "0.3",
   "name": "@nimblebraininc/granola",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Search and extract information from Granola meeting notes",
   "author": {
     "name": "NimbleBrain Inc"

@@ -1,6 +1,6 @@
 [project]
 name = "mcp-granola"
-version = "0.2.2"
+version = "0.2.3"
 description = "MCP server for searching and extracting information from Granola meeting notes"
 readme = "README.md"
 license = {text = "MIT"}
