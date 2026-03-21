@@ -113,17 +113,17 @@ class GranolaData:
     def _get_attendees(self, doc: dict[str, Any]) -> list[dict[str, str]]:
         """Extract attendees from a document."""
         attendees = []
-        people = doc.get("people", {})
+        people = doc.get("people") or {}
 
         # Creator
         creator = people.get("creator", {})
         if creator and creator.get("email"):
-            attendees.append({"name": creator.get("name", ""), "email": creator.get("email", "")})
+            attendees.append({"name": creator.get("name") or "", "email": creator.get("email") or ""})
 
         # Attendees
         for att in people.get("attendees", []):
             if att and att.get("email"):
-                attendees.append({"name": att.get("name", ""), "email": att.get("email", "")})
+                attendees.append({"name": att.get("name") or "", "email": att.get("email") or ""})
 
         return attendees
 
@@ -226,7 +226,7 @@ class GranolaData:
         panels = []
         for panel_id, panel in panels_dict.items():
             content = self._extract_panel_text(panel.get("content", {}))
-            panels.append({"id": panel_id, "title": panel.get("title", ""), "content": content})
+            panels.append({"id": panel_id, "title": panel.get("title") or "", "content": content})
 
         notes_plain = doc.get("notes_plain") or ""
         if not notes_plain and doc.get("notes"):
@@ -234,10 +234,10 @@ class GranolaData:
 
         return {
             "id": doc_id,
-            "title": doc.get("title", ""),
-            "created_at": doc.get("created_at", ""),
+            "title": doc.get("title") or "",
+            "created_at": doc.get("created_at") or "",
             "updated_at": doc.get("updated_at"),
-            "notes_markdown": doc.get("notes_markdown", ""),
+            "notes_markdown": doc.get("notes_markdown") or "",
             "notes_plain": notes_plain,
             "attendees": self._get_attendees(doc),
             "panels": panels,
@@ -366,7 +366,7 @@ class GranolaData:
 
         return {
             "meeting_id": doc_id,
-            "meeting_title": doc.get("title", ""),
+            "meeting_title": doc.get("title") or "",
             "segments": segments,
             "total_segments": len(segments),
             "format": format,

@@ -66,8 +66,8 @@
           "title": "Design Review: Onboarding",
           "created_at": "2025-01-20T14:00:00Z",
           "updated_at": "2025-01-20T15:00:00Z",
-          "notes_plain": "",
-          "notes_markdown": "",
+          "notes_plain": null,
+          "notes_markdown": null,
           "notes": {
             "type": "doc",
             "content": [
@@ -99,11 +99,11 @@
           }
         },
         "doc-003": {
-          "title": "Sprint Retrospective",
+          "title": null,
           "created_at": "2025-02-01T09:00:00Z",
           "updated_at": null,
           "notes_plain": "",
-          "notes_markdown": "",
+          "notes_markdown": null,
           "notes": {
             "type": "doc",
             "content": [
@@ -127,16 +127,7 @@
           "privacy_mode_enabled": true,
           "workspace_id": "ws-001",
           "google_calendar_event": null,
-          "people": {
-            "creator": {
-              "name": "Bob Smith",
-              "email": "bob@example.com"
-            },
-            "attendees": [
-              {"name": "Alice Chen", "email": "alice@example.com"},
-              {"name": "Dave Wilson", "email": "dave@example.com"}
-            ]
-          }
+          "people": null
         },
         "doc-004": {
           "title": "API Architecture Discussion",

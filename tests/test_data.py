@@ -520,9 +520,10 @@ class TestV6ProseMirrorFallback:
     def test_search_finds_prosemirror_only_docs(self, granola_data_v6: GranolaData):
         """Search indexes content from ProseMirror-only documents."""
         # doc-003 has empty notes_plain but ProseMirror notes with "code review"
+        # doc-003 also has null title (realistic v6 data), so title is coerced to ""
         results = granola_data_v6.search("code review")
-        titles = [r["title"] for r in results]
-        assert "Sprint Retrospective" in titles
+        ids = [r["id"] for r in results]
+        assert "doc-003" in ids
 
     def test_search_snippets_from_prosemirror_only_docs(self, granola_data_v6: GranolaData):
         """Search returns snippets for ProseMirror-only documents."""
@@ -554,6 +555,41 @@ class TestV6PanelsAvailable:
         assert len(doc["panels"]) == 2
         panel_titles = [p["title"] for p in doc["panels"]]
         assert "Action Items" in panel_titles
+
+
+class TestV6NullFields:
+    """Regression tests for explicit null fields in cache-v6 data.
+
+    In production v6 caches, fields like notes_markdown, title, and people
+    can be explicit null (not missing). dict.get(key, default) does NOT
+    handle this — the value is present but None. The fix uses (get() or default).
+    """
+
+    def test_null_notes_markdown(self, granola_data_v6: GranolaData):
+        """get_document returns empty string when notes_markdown is explicit null."""
+        doc = granola_data_v6.get_document("doc-002")
+        assert doc is not None
+        assert doc["notes_markdown"] == ""
+
+    def test_null_title(self, granola_data_v6: GranolaData):
+        """get_document returns empty string when title is explicit null."""
+        doc = granola_data_v6.get_document("doc-003")
+        assert doc is not None
+        assert doc["title"] == ""
+
+    def test_null_people(self, granola_data_v6: GranolaData):
+        """_get_attendees handles explicit null people without crashing."""
+        doc = granola_data_v6.documents["doc-003"]
+        assert doc["people"] is None  # Confirm fixture has explicit null
+        attendees = granola_data_v6._get_attendees(doc)
+        assert attendees == []
+
+    def test_null_people_doesnt_crash_search_cache(self, granola_data_v6: GranolaData):
+        """_build_search_cache doesn't crash when a doc has null people."""
+        # This is the startup crash from the PR — all tools fail if this breaks
+        cache = granola_data_v6._build_search_cache()
+        assert "doc-003" in cache
+        assert cache["doc-003"]["attendees"] == []
 
 
 class TestV6Attendees:
