@@ -1,8 +1,9 @@
 """Granola data loader with caching and search functionality."""
 
 import json
+import re
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 GRANOLA_DIR = Path.home() / "Library/Application Support/Granola"
 CACHE_VERSIONS = ["cache-v6.json", "cache-v5.json", "cache-v4.json", "cache-v3.json"]
@@ -323,13 +324,25 @@ class GranolaData:
         total = len(items)
         return total, items[offset : offset + limit]
 
-    def search_by_person(self, person: str, limit: int = 20) -> list[dict[str, Any]]:
+    def search_by_person(
+        self,
+        person: str,
+        limit: int = 20,
+        date_from: str | None = None,
+        date_to: str | None = None,
+    ) -> list[dict[str, Any]]:
         """Find meetings with a specific person."""
         cache = self._build_search_cache()
         person_lower = person.lower()
         results = []
 
         for doc_id, cached in cache.items():
+            # Date filtering
+            if date_from and cached["date"] < date_from:
+                continue
+            if date_to and cached["date"] > date_to:
+                continue
+
             for att in cached["attendees"]:
                 if person_lower in att["name"].lower() or person_lower in att["email"].lower():
                     transcript = self.transcripts.get(doc_id, [])
@@ -373,6 +386,147 @@ class GranolaData:
             "total_segments": len(segments),
             "format": format,
         }
+
+    def get_meeting_summaries(
+        self,
+        date_from: str,
+        date_to: str,
+        person: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """Get meetings with notes in a date range, optionally filtered by person."""
+        cache = self._build_search_cache()
+        results = []
+
+        for doc_id, cached in cache.items():
+            if cached["date"] < date_from or cached["date"] > date_to:
+                continue
+
+            if person:
+                person_lower = person.lower()
+                if not any(
+                    person_lower in a["name"].lower() or person_lower in a["email"].lower()
+                    for a in cached["attendees"]
+                ):
+                    continue
+
+            doc = self.get_document(doc_id)
+            if not doc:
+                continue
+
+            results.append(
+                {
+                    "id": doc_id,
+                    "title": doc["title"],
+                    "date": cached["date"],
+                    "notes_plain": doc["notes_plain"],
+                    "attendees": doc["attendees"],
+                }
+            )
+
+        results.sort(key=lambda x: x["date"], reverse=True)
+        return results
+
+    def extract_action_items(
+        self,
+        meeting_id: str | None = None,
+        date_from: str | None = None,
+        date_to: str | None = None,
+        person: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """Extract action items from meeting notes and panels.
+
+        Can target a single meeting by ID, or multiple meetings by date range.
+        """
+        # Determine which meetings to process
+        if meeting_id:
+            doc = self.get_document(meeting_id)
+            if not doc:
+                return []
+            cache = self._build_search_cache()
+            cached = cache.get(meeting_id)
+            meetings = [
+                {
+                    "id": meeting_id,
+                    "title": doc["title"],
+                    "date": cached["date"] if cached else "",
+                    "doc": doc,
+                }
+            ]
+        elif date_from and date_to:
+            summaries = self.get_meeting_summaries(
+                date_from=date_from, date_to=date_to, person=person
+            )
+            meetings = []
+            for s in summaries:
+                doc = self.get_document(s["id"])
+                if doc:
+                    meetings.append(
+                        {
+                            "id": s["id"],
+                            "title": s["title"],
+                            "date": s["date"],
+                            "doc": doc,
+                        }
+                    )
+        else:
+            return []
+
+        # Extract action items from each meeting
+        items: list[dict[str, Any]] = []
+        for m in meetings:
+            doc = cast(dict[str, Any], m["doc"])
+
+            # Extract from panels (highest quality — Granola's AI panels)
+            panels: list[dict[str, Any]] = doc.get("panels", [])
+            for panel in panels:
+                if "action" in panel.get("title", "").lower():
+                    for line in str(panel.get("content", "")).split("\n"):
+                        line = line.strip().lstrip("- ").strip()
+                        if line:
+                            items.append(
+                                {
+                                    "action": line,
+                                    "meeting_id": m["id"],
+                                    "meeting_title": m["title"],
+                                    "meeting_date": m["date"],
+                                    "source": "panel",
+                                }
+                            )
+
+            # Extract from notes — look for bullet points and action-oriented lines
+            notes: str = doc.get("notes_plain", "") or ""
+            for line in notes.split("\n"):
+                line = line.strip()
+                if not line:
+                    continue
+                # Match bullet points (-, *, [ ], [x])
+                bullet_match = re.match(r"^[-*]\s+(.+)", line)
+                checkbox_match = re.match(r"^\[[ x]]\s+(.+)", line, re.IGNORECASE)
+                if bullet_match:
+                    text = bullet_match.group(1).strip()
+                    # Skip if already captured from panels
+                    if not any(text in item["action"] or item["action"] in text for item in items):
+                        items.append(
+                            {
+                                "action": text,
+                                "meeting_id": m["id"],
+                                "meeting_title": m["title"],
+                                "meeting_date": m["date"],
+                                "source": "notes",
+                            }
+                        )
+                elif checkbox_match:
+                    items.append(
+                        {
+                            "action": checkbox_match.group(1).strip(),
+                            "meeting_id": m["id"],
+                            "meeting_title": m["title"],
+                            "meeting_date": m["date"],
+                            "source": "notes",
+                        }
+                    )
+
+        return items
 
     def get_stats(self) -> dict[str, Any]:
         """Get statistics about the data."""

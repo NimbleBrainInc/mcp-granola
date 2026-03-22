@@ -10,10 +10,27 @@
 | `get_meeting` | You have a `meeting_id` and need the full notes, attendees, and panels |
 | `get_transcript` | You need the raw transcript segments for a specific meeting |
 | `get_meeting_stats` | You need an overview of how much data is available |
+| `summarize_meetings` | You need a recap of meetings over a time period (returns notes + attendees) |
+| `extract_action_items` | You need TODOs, next steps, or action items from one or more meetings |
 
 ## Parameter Reference
 
 All tools that accept meeting identifiers use `meeting_id` (not `doc_id`, `id`, or `document_id`). The `meeting_id` value comes from the `id` field in search results and meeting lists.
+
+## Date Parameters
+
+Tools that accept time ranges (`summarize_meetings`, `extract_action_items`, `list_meetings`, `search_meetings`, `search_by_person`) support two ways to specify dates:
+
+- **`date_from` / `date_to`** (YYYY-MM-DD): Explicit date range. Use when the user asks for a calendar-aligned period. Compute the actual YYYY-MM-DD dates yourself.
+- **`days`** (integer, `summarize_meetings` and `extract_action_items` only): Shortcut for "last N days from today". Use when the user says "recent" or "last N days".
+
+If neither is provided, `summarize_meetings` and `extract_action_items` default to the last 7 days.
+
+**Examples of how to translate user requests:**
+- "What happened last week?" → compute Monday–Sunday dates, use `date_from`/`date_to`
+- "Summarize my last 30 days" → use `days=30`
+- "Action items from January" → use `date_from="2026-01-01"`, `date_to="2026-01-31"`
+- "What did I discuss with Carol recently?" → use `days=14` with `person="Carol"`
 
 ## Context Reuse
 
@@ -24,7 +41,7 @@ All tools that accept meeting identifiers use `meeting_id` (not `doc_id`, `id`, 
 ## Workflows
 
 ### 1. Summarize a Meeting with a Specific Person
-1. `search_by_person` with their name to find meetings
+1. `search_by_person` with their name to find meetings — use `date_from`/`date_to` to scope to the relevant time period
 2. Pick the relevant meeting by title/date
 3. `get_meeting` with `meeting_id` to get notes and panels
 4. If notes are sparse and `has_transcript` is true: `get_transcript` with `meeting_id`
@@ -48,9 +65,20 @@ All tools that accept meeting identifiers use `meeting_id` (not `doc_id`, `id`, 
 2. Check `has_transcript` — most meetings have privacy mode enabled and won't have transcripts
 3. `get_transcript` with `meeting_id` and `format="timestamped"` for timing info
 
+### 6. Summarize Meetings Over a Period
+1. `summarize_meetings` with `days=7` or explicit `date_from`/`date_to`
+2. Optionally filter by `person` to scope to a specific colleague
+3. Review the returned notes and attendees to build the summary
+
+### 7. Extract Action Items
+1. For a single meeting: `extract_action_items` with `meeting_id`
+2. For a time range: `extract_action_items` with `days=7` or `date_from`/`date_to`
+3. Optionally filter by `person` to see only items from meetings with that person
+4. Group the returned items by meeting for organized presentation
+
 ## Tips
 
 - **Transcript availability is rare**: Most Granola meetings use privacy mode. Check `has_transcript` before attempting `get_transcript`.
 - **`get_meeting` with `include_transcript=True`**: Appends the transcript to the notes in a single call — useful when you want everything at once without a separate `get_transcript` call.
-- **Date filters**: Use `YYYY-MM-DD` format for `date_from` and `date_to` parameters.
+- **Date filters**: Always scope queries to the relevant time period to avoid returning stale results from months or years ago.
 - **Attendee filter**: Works on both name and email — partial matches are supported.

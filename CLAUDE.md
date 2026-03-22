@@ -77,3 +77,5 @@ mpak bundle run @nimblebraininc/granola
 | `search_by_person` | Find meetings with specific person |
 | `get_transcript` | Get raw transcript segments |
 | `get_meeting_stats` | Data statistics |
+| `summarize_meetings` | Summarize meetings over a time period (with notes + attendees) |
+| `extract_action_items` | Extract action items/TODOs from meetings |

@@ -99,3 +99,39 @@ class DataStats(BaseModel):
     date_range_start: str
     date_range_end: str
     unique_attendees: int
+
+
+class MeetingSummary(BaseModel):
+    """A meeting with notes for summarization."""
+
+    id: str
+    title: str
+    date: str
+    notes_plain: str
+    attendees: list[MeetingAttendee]
+
+
+class SummarizeMeetingsResponse(BaseModel):
+    """Response from summarize_meetings tool."""
+
+    total: int
+    date_from: str
+    date_to: str
+    meetings: list[MeetingSummary]
+
+
+class ActionItem(BaseModel):
+    """A single extracted action item."""
+
+    action: str
+    meeting_id: str
+    meeting_title: str
+    meeting_date: str
+    source: str
+
+
+class ActionItemsResponse(BaseModel):
+    """Response from extract_action_items tool."""
+
+    total: int
+    action_items: list[ActionItem]
