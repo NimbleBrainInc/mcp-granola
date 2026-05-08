@@ -1,11 +1,12 @@
 {
   "manifest_version": "0.3",
   "name": "@nimblebraininc/granola",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Search and extract information from Granola meeting notes",
   "author": {
     "name": "NimbleBrain Inc"
   },
+  "icon": "https://static.nimblebrain.ai/icons/granola.png",
   "server": {
     "type": "python",
     "entry_point": "mcp_granola.server",
