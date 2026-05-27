@@ -1,3 +1,10 @@
+> [!WARNING]
+> **This repository is archived and no longer maintained.**
+>
+> This MCP server has been removed from the [mpak registry](https://mpak.dev). Granola now provides a native remote MCP endpoint — use that instead.
+
+---
+
 # Granola MCP Server
 
 [![CI](https://github.com/NimbleBrainInc/mcp-granola/actions/workflows/ci.yml/badge.svg)](https://github.com/NimbleBrainInc/mcp-granola/actions/workflows/ci.yml)
